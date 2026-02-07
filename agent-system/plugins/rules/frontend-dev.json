@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "name": "accessibility_required",
+      "description": "All components must meet WCAG 2.1 AA",
+      "conditions": { "taskType": "DEVELOPMENT", "component": "ui" },
+      "actions": { "enforce": "aria_attributes", "checkPattern": "semantic_html" },
+      "priority": 80
+    },
+    {
+      "name": "loading_states_required",
+      "description": "All async components must handle loading and error states",
+      "conditions": { "taskType": "DEVELOPMENT", "hasAsyncData": true },
+      "actions": { "enforce": "loading_skeleton", "checkPattern": "error_boundary" },
+      "priority": 70
+    }
+  ]
+}

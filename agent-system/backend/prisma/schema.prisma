@@ -1,0 +1,528 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTHENTICATION & USERS
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String
+  role          UserRole  @default(MEMBER)
+  avatar        String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastLoginAt   DateTime? @map("last_login_at")
+
+  projects      ProjectMember[]
+  auditLogs     AuditLog[]
+  settings      UserSetting[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+model UserSetting {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  key    String
+  value  Json
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@map("user_settings")
+}
+
+// ============================================
+// PROJECTS
+// ============================================
+
+model Project {
+  id              String          @id @default(cuid())
+  name            String
+  description     String?
+  status          ProjectStatus   @default(ACTIVE)
+  consumptionMode ConsumptionMode @default(STANDARD) @map("consumption_mode")
+  config          Json            @default("{}")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  archivedAt      DateTime?       @map("archived_at")
+
+  members          ProjectMember[]
+  tasks            Task[]
+  agentAssignments AgentAssignment[]
+  costRecords      CostRecord[]
+  n8nWorkflows     N8nWorkflow[]
+
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ConsumptionMode {
+  MINIMAL
+  STANDARD
+  HIGH_PERFORMANCE
+}
+
+model ProjectMember {
+  id        String            @id @default(cuid())
+  projectId String            @map("project_id")
+  userId    String            @map("user_id")
+  role      ProjectMemberRole @default(MEMBER)
+  joinedAt  DateTime          @default(now()) @map("joined_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+enum ProjectMemberRole {
+  OWNER
+  MEMBER
+  VIEWER
+}
+
+// ============================================
+// TASKS
+// ============================================
+
+model Task {
+  id            String       @id @default(cuid())
+  projectId     String       @map("project_id")
+  parentTaskId  String?      @map("parent_task_id")
+  title         String
+  description   String?
+  status        TaskStatus   @default(PENDING)
+  priority      TaskPriority @default(MEDIUM)
+  type          TaskType     @default(DEVELOPMENT)
+  input         Json         @default("{}")
+  output        Json?
+  errorMessage  String?      @map("error_message")
+  retryCount    Int          @default(0) @map("retry_count")
+  maxRetries    Int          @default(3) @map("max_retries")
+  estimatedCost Decimal?     @map("estimated_cost") @db.Decimal(10, 4)
+  actualCost    Decimal?     @map("actual_cost") @db.Decimal(10, 4)
+  startedAt     DateTime?    @map("started_at")
+  completedAt   DateTime?    @map("completed_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentTask      Task?            @relation("TaskSubtasks", fields: [parentTaskId], references: [id])
+  subtasks        Task[]           @relation("TaskSubtasks")
+  agentAssignment AgentAssignment?
+  auditLogs       AuditLog[]
+  toolInvocations ToolInvocation[]
+
+  @@index([projectId, status])
+  @@index([parentTaskId])
+  @@index([status, priority])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  PENDING
+  QUEUED
+  IN_PROGRESS
+  WAITING_FOR_REVIEW
+  COMPLETED
+  FAILED
+  CANCELLED
+  RETRYING
+}
+
+enum TaskPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TaskType {
+  DEVELOPMENT
+  REVIEW
+  TESTING
+  DEPLOYMENT
+  DOCUMENTATION
+  ARCHITECTURE
+  SECURITY_AUDIT
+  PERFORMANCE
+  DATA_ENGINEERING
+  PRODUCT_MANAGEMENT
+  ORCHESTRATION
+}
+
+// ============================================
+// AGENTS
+// ============================================
+
+model Agent {
+  id            String      @id @default(cuid())
+  role          AgentRole   @unique
+  name          String
+  description   String?
+  status        AgentStatus @default(IDLE)
+  config        Json        @default("{}")
+  capabilities  Json        @default("[]")
+  lastHeartbeat DateTime?   @map("last_heartbeat")
+  currentLoad   Int         @default(0) @map("current_load")
+  maxLoad       Int         @default(5) @map("max_load")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  assignments AgentAssignment[]
+  auditLogs   AuditLog[]
+  metrics     AgentMetric[]
+
+  @@map("agents")
+}
+
+enum AgentRole {
+  MASTER_ORCHESTRATOR
+  BACKEND_DEV
+  FRONTEND_DEV
+  DEVOPS
+  QA
+  SECURITY
+  DATA_ENGINEER
+  PERFORMANCE
+  DOCUMENTATION
+  PRODUCT_MANAGER
+  SOLUTIONS_ARCHITECT
+  TECH_LEAD
+}
+
+enum AgentStatus {
+  IDLE
+  BUSY
+  OVERLOADED
+  ERROR
+  OFFLINE
+  MAINTENANCE
+}
+
+model AgentAssignment {
+  id          String    @id @default(cuid())
+  agentId     String    @map("agent_id")
+  taskId      String    @unique @map("task_id")
+  projectId   String    @map("project_id")
+  assignedAt  DateTime  @default(now()) @map("assigned_at")
+  completedAt DateTime? @map("completed_at")
+
+  agent   Agent   @relation(fields: [agentId], references: [id])
+  task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, completedAt])
+  @@index([projectId])
+  @@map("agent_assignments")
+}
+
+// ============================================
+// RULES & PROMPTS (versioned)
+// ============================================
+
+model AgentPrompt {
+  id        String    @id @default(cuid())
+  agentRole AgentRole @map("agent_role")
+  name      String
+  content   String
+  version   Int       @default(1)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@unique([agentRole, name, version])
+  @@index([agentRole, isActive])
+  @@map("agent_prompts")
+}
+
+model AgentRule {
+  id         String    @id @default(cuid())
+  agentRole  AgentRole @map("agent_role")
+  name       String
+  conditions Json
+  actions    Json
+  priority   Int       @default(0)
+  isActive   Boolean   @default(true) @map("is_active")
+  version    Int       @default(1)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@unique([agentRole, name, version])
+  @@index([agentRole, isActive])
+  @@map("agent_rules")
+}
+
+// ============================================
+// TOOL INVOCATIONS
+// ============================================
+
+model ToolInvocation {
+  id         String               @id @default(cuid())
+  taskId     String               @map("task_id")
+  toolName   String               @map("tool_name")
+  input      Json
+  output     Json?
+  status     ToolInvocationStatus @default(PENDING)
+  durationMs Int?                 @map("duration_ms")
+  error      String?
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([toolName, status])
+  @@map("tool_invocations")
+}
+
+enum ToolInvocationStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  TIMEOUT
+}
+
+// ============================================
+// MONITORING & METRICS
+// ============================================
+
+model AgentMetric {
+  id         String   @id @default(cuid())
+  agentId    String   @map("agent_id")
+  metricType String   @map("metric_type")
+  value      Decimal  @db.Decimal(10, 4)
+  metadata   Json     @default("{}")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, metricType, recordedAt])
+  @@map("agent_metrics")
+}
+
+model MetricSnapshot {
+  id         String   @id @default(cuid())
+  projectId  String?  @map("project_id")
+  metricName String   @map("metric_name")
+  value      Decimal  @db.Decimal(10, 4)
+  dimensions Json     @default("{}")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  @@index([metricName, recordedAt])
+  @@index([projectId, metricName])
+  @@map("metric_snapshots")
+}
+
+model Alert {
+  id          String        @id @default(cuid())
+  name        String
+  condition   Json
+  severity    AlertSeverity @default(WARNING)
+  status      AlertStatus   @default(ACTIVE)
+  message     String?
+  triggeredAt DateTime      @default(now()) @map("triggered_at")
+  resolvedAt  DateTime?     @map("resolved_at")
+  metadata    Json          @default("{}")
+
+  @@index([status, severity])
+  @@map("alerts")
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+// ============================================
+// AUDIT TRAIL
+// ============================================
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  correlationId String?  @map("correlation_id")
+  userId        String?  @map("user_id")
+  agentId       String?  @map("agent_id")
+  taskId        String?  @map("task_id")
+  action        String
+  entityType    String   @map("entity_type")
+  entityId      String?  @map("entity_id")
+  before        Json?
+  after         Json?
+  metadata      Json     @default("{}")
+  ipAddress     String?  @map("ip_address")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user  User?  @relation(fields: [userId], references: [id])
+  agent Agent? @relation(fields: [agentId], references: [id])
+  task  Task?  @relation(fields: [taskId], references: [id])
+
+  @@index([correlationId])
+  @@index([userId, createdAt])
+  @@index([agentId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+model Integration {
+  id          String            @id @default(cuid())
+  pluginId    String            @unique @map("plugin_id")
+  name        String
+  type        IntegrationType
+  config      Json              @default("{}")
+  credentials Json              @default("{}")
+  status      IntegrationStatus @default(INACTIVE)
+  lastSyncAt  DateTime?         @map("last_sync_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  webhookEvents IntegrationWebhookEvent[]
+
+  @@map("integrations")
+}
+
+enum IntegrationType {
+  N8N
+  SLACK
+  GITHUB
+  DATADOG
+  CUSTOM_WEBHOOK
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  CONFIGURING
+}
+
+model IntegrationWebhookEvent {
+  id            String    @id @default(cuid())
+  integrationId String    @map("integration_id")
+  eventType     String    @map("event_type")
+  payload       Json
+  status        String    @default("received")
+  processedAt   DateTime? @map("processed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId, createdAt])
+  @@map("integration_webhook_events")
+}
+
+// ============================================
+// N8N WORKFLOWS
+// ============================================
+
+model N8nWorkflow {
+  id              String    @id @default(cuid())
+  projectId       String?   @map("project_id")
+  n8nWorkflowId   String    @map("n8n_workflow_id")
+  name            String
+  description     String?
+  webhookUrl      String?   @map("webhook_url")
+  triggerType     String    @map("trigger_type")
+  isActive        Boolean   @default(true) @map("is_active")
+  lastTriggeredAt DateTime? @map("last_triggered_at")
+  config          Json      @default("{}")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  project  Project?            @relation(fields: [projectId], references: [id])
+  triggers AutomationTrigger[]
+
+  @@index([n8nWorkflowId])
+  @@map("n8n_workflows")
+}
+
+// ============================================
+// AUTOMATION TRIGGERS
+// ============================================
+
+model AutomationTrigger {
+  id            String    @id @default(cuid())
+  n8nWorkflowId String?   @map("n8n_workflow_id")
+  name          String
+  eventType     String    @map("event_type")
+  conditions    Json      @default("{}")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastFiredAt   DateTime? @map("last_fired_at")
+  fireCount     Int       @default(0) @map("fire_count")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  n8nWorkflow N8nWorkflow? @relation(fields: [n8nWorkflowId], references: [id])
+
+  @@index([eventType, isActive])
+  @@map("automation_triggers")
+}
+
+// ============================================
+// COST TRACKING
+// ============================================
+
+model CostRecord {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  category    String
+  amount      Decimal  @db.Decimal(10, 4)
+  currency    String   @default("USD")
+  description String?
+  metadata    Json     @default("{}")
+  recordedAt  DateTime @default(now()) @map("recorded_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, recordedAt])
+  @@index([category, recordedAt])
+  @@map("cost_records")
+}
+
+// ============================================
+// SYSTEM SETTINGS
+// ============================================
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  category  String   @default("general")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("system_settings")
+}

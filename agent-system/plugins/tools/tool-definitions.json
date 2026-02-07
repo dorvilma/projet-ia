@@ -1,0 +1,98 @@
+{
+  "tools": [
+    {
+      "name": "code_generation",
+      "description": "Generate code based on task requirements",
+      "parameters": {
+        "language": { "type": "string", "required": true },
+        "framework": { "type": "string", "required": false },
+        "specification": { "type": "string", "required": true }
+      },
+      "allowedAgents": ["BACKEND_DEV", "FRONTEND_DEV", "DEVOPS", "DATA_ENGINEER"]
+    },
+    {
+      "name": "code_review",
+      "description": "Review code for quality, security, and best practices",
+      "parameters": {
+        "code": { "type": "string", "required": true },
+        "language": { "type": "string", "required": true },
+        "reviewType": { "type": "string", "enum": ["quality", "security", "performance", "full"] }
+      },
+      "allowedAgents": ["QA", "SECURITY", "TECH_LEAD", "PERFORMANCE"]
+    },
+    {
+      "name": "test_generation",
+      "description": "Generate test cases for given code or specification",
+      "parameters": {
+        "code": { "type": "string", "required": false },
+        "specification": { "type": "string", "required": true },
+        "testType": { "type": "string", "enum": ["unit", "integration", "e2e"] }
+      },
+      "allowedAgents": ["QA", "BACKEND_DEV", "FRONTEND_DEV"]
+    },
+    {
+      "name": "architecture_analysis",
+      "description": "Analyze system architecture and propose improvements",
+      "parameters": {
+        "scope": { "type": "string", "required": true },
+        "constraints": { "type": "object", "required": false }
+      },
+      "allowedAgents": ["SOLUTIONS_ARCHITECT", "TECH_LEAD"]
+    },
+    {
+      "name": "security_scan",
+      "description": "Scan code or configuration for security vulnerabilities",
+      "parameters": {
+        "target": { "type": "string", "required": true },
+        "scanType": { "type": "string", "enum": ["owasp", "dependency", "configuration", "full"] }
+      },
+      "allowedAgents": ["SECURITY"]
+    },
+    {
+      "name": "documentation_generation",
+      "description": "Generate documentation from code or specifications",
+      "parameters": {
+        "source": { "type": "string", "required": true },
+        "format": { "type": "string", "enum": ["markdown", "openapi", "jsdoc", "adr"] }
+      },
+      "allowedAgents": ["DOCUMENTATION"]
+    },
+    {
+      "name": "performance_analysis",
+      "description": "Analyze performance metrics and identify bottlenecks",
+      "parameters": {
+        "target": { "type": "string", "required": true },
+        "metrics": { "type": "array", "required": false }
+      },
+      "allowedAgents": ["PERFORMANCE"]
+    },
+    {
+      "name": "task_decomposition",
+      "description": "Break down a complex task into subtasks",
+      "parameters": {
+        "task": { "type": "string", "required": true },
+        "maxSubtasks": { "type": "number", "default": 5 }
+      },
+      "allowedAgents": ["MASTER_ORCHESTRATOR", "PRODUCT_MANAGER"]
+    },
+    {
+      "name": "deployment_plan",
+      "description": "Create a deployment plan for services",
+      "parameters": {
+        "services": { "type": "array", "required": true },
+        "environment": { "type": "string", "enum": ["development", "staging", "production"] }
+      },
+      "allowedAgents": ["DEVOPS"]
+    },
+    {
+      "name": "data_migration",
+      "description": "Plan and generate data migration scripts",
+      "parameters": {
+        "source": { "type": "string", "required": true },
+        "target": { "type": "string", "required": true },
+        "strategy": { "type": "string", "enum": ["additive", "destructive", "zero-downtime"] }
+      },
+      "allowedAgents": ["DATA_ENGINEER"]
+    }
+  ]
+}

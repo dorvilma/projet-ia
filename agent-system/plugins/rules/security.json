@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "name": "owasp_top10_check",
+      "description": "All code must pass OWASP Top 10 checks",
+      "conditions": { "taskType": "SECURITY_AUDIT" },
+      "actions": { "enforce": "owasp_scan", "blockOnCritical": true },
+      "priority": 100
+    },
+    {
+      "name": "dependency_audit",
+      "description": "Check for known vulnerabilities in dependencies",
+      "conditions": { "taskType": "SECURITY_AUDIT" },
+      "actions": { "enforce": "npm_audit", "blockOnHigh": true },
+      "priority": 90
+    }
+  ]
+}

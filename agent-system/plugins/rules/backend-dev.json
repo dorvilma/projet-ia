@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "name": "input_validation_required",
+      "description": "All endpoints must include input validation",
+      "conditions": { "taskType": "DEVELOPMENT", "component": "api" },
+      "actions": { "enforce": "zod_validation", "checkPattern": "schema_present" },
+      "priority": 80
+    },
+    {
+      "name": "error_handling_required",
+      "description": "All async operations must have error handling",
+      "conditions": { "taskType": "DEVELOPMENT" },
+      "actions": { "enforce": "try_catch", "checkPattern": "error_handler" },
+      "priority": 70
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "name": "coverage_threshold",
+      "description": "Critical paths must have minimum 80% coverage",
+      "conditions": { "taskType": "TESTING" },
+      "actions": { "enforce": "min_coverage_80", "reportGaps": true },
+      "priority": 80
+    },
+    {
+      "name": "regression_test_required",
+      "description": "Bug fixes must include regression tests",
+      "conditions": { "taskType": "TESTING", "isBugFix": true },
+      "actions": { "enforce": "regression_test", "checkPattern": "reproducing_test" },
+      "priority": 90
+    }
+  ]
+}

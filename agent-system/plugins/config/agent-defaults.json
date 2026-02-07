@@ -1,0 +1,82 @@
+{
+  "agents": {
+    "MASTER_ORCHESTRATOR": {
+      "maxLoad": 10,
+      "timeout": 600000,
+      "retryPolicy": { "maxAttempts": 3, "backoffMultiplier": 2 },
+      "capabilities": ["task_decomposition", "delegation", "aggregation", "escalation"]
+    },
+    "BACKEND_DEV": {
+      "maxLoad": 5,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 3, "backoffMultiplier": 2 },
+      "capabilities": ["code_generation", "api_design", "database_design", "code_review"]
+    },
+    "FRONTEND_DEV": {
+      "maxLoad": 5,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 3, "backoffMultiplier": 2 },
+      "capabilities": ["component_development", "state_management", "ui_design", "a11y_check"]
+    },
+    "DEVOPS": {
+      "maxLoad": 3,
+      "timeout": 600000,
+      "retryPolicy": { "maxAttempts": 2, "backoffMultiplier": 3 },
+      "capabilities": ["infrastructure", "ci_cd", "container_orchestration", "monitoring_setup"]
+    },
+    "QA": {
+      "maxLoad": 5,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 3, "backoffMultiplier": 2 },
+      "capabilities": ["test_generation", "test_execution", "bug_reporting", "load_testing"]
+    },
+    "SECURITY": {
+      "maxLoad": 3,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 2, "backoffMultiplier": 2 },
+      "capabilities": ["security_audit", "dependency_scan", "compliance_check", "threat_modeling"]
+    },
+    "DATA_ENGINEER": {
+      "maxLoad": 3,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 3, "backoffMultiplier": 2 },
+      "capabilities": ["pipeline_design", "data_quality", "schema_design", "etl_implementation"]
+    },
+    "PERFORMANCE": {
+      "maxLoad": 3,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 2, "backoffMultiplier": 2 },
+      "capabilities": ["profiling", "optimization", "load_testing", "bottleneck_analysis"]
+    },
+    "DOCUMENTATION": {
+      "maxLoad": 5,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 3, "backoffMultiplier": 2 },
+      "capabilities": ["api_docs", "user_guides", "architecture_docs", "changelog"]
+    },
+    "PRODUCT_MANAGER": {
+      "maxLoad": 5,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 3, "backoffMultiplier": 2 },
+      "capabilities": ["requirements_analysis", "user_stories", "prioritization", "roadmap"]
+    },
+    "SOLUTIONS_ARCHITECT": {
+      "maxLoad": 3,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 2, "backoffMultiplier": 2 },
+      "capabilities": ["system_design", "tech_selection", "scalability_planning", "design_review"]
+    },
+    "TECH_LEAD": {
+      "maxLoad": 5,
+      "timeout": 300000,
+      "retryPolicy": { "maxAttempts": 2, "backoffMultiplier": 2 },
+      "capabilities": ["code_review", "standards_enforcement", "technical_decisions", "mentoring"]
+    }
+  },
+  "projectTemplates": {
+    "full_stack_web": ["MASTER_ORCHESTRATOR", "BACKEND_DEV", "FRONTEND_DEV", "DEVOPS", "QA", "SECURITY", "PERFORMANCE", "DOCUMENTATION"],
+    "microservices": ["MASTER_ORCHESTRATOR", "BACKEND_DEV", "DEVOPS", "SECURITY", "DATA_ENGINEER", "PERFORMANCE", "SOLUTIONS_ARCHITECT", "TECH_LEAD"],
+    "api_first": ["MASTER_ORCHESTRATOR", "BACKEND_DEV", "QA", "SECURITY", "PERFORMANCE", "DOCUMENTATION", "TECH_LEAD"],
+    "data_intensive": ["MASTER_ORCHESTRATOR", "BACKEND_DEV", "DATA_ENGINEER", "PERFORMANCE", "SECURITY", "DEVOPS", "QA", "DOCUMENTATION"]
+  }
+}

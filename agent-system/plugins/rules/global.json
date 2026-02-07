@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "name": "max_retry_limit",
+      "description": "Prevent infinite retries on failed tasks",
+      "conditions": { "retryCount": { "$gte": 3 } },
+      "actions": { "setStatus": "FAILED", "notify": "slack" },
+      "priority": 100
+    },
+    {
+      "name": "critical_task_escalation",
+      "description": "Escalate critical tasks that are stale",
+      "conditions": { "priority": "CRITICAL", "status": "PENDING", "ageMinutes": { "$gte": 10 } },
+      "actions": { "escalate": true, "notify": "slack", "reassign": "MASTER_ORCHESTRATOR" },
+      "priority": 90
+    },
+    {
+      "name": "cost_threshold_warning",
+      "description": "Alert when task cost exceeds threshold",
+      "conditions": { "actualCost": { "$gte": 1.0 } },
+      "actions": { "notify": "slack", "logAlert": true },
+      "priority": 50
+    }
+  ]
+}

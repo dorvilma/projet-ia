@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "name": "task_routing",
+      "description": "Route tasks to appropriate agents based on type",
+      "conditions": { "status": "PENDING" },
+      "actions": { "decompose": true, "assignByType": true },
+      "priority": 100
+    },
+    {
+      "name": "subtask_aggregation",
+      "description": "Aggregate results when all subtasks complete",
+      "conditions": { "allSubtasksCompleted": true },
+      "actions": { "aggregate": true, "setParentStatus": "COMPLETED" },
+      "priority": 80
+    },
+    {
+      "name": "failure_recovery",
+      "description": "Handle subtask failures",
+      "conditions": { "subtaskFailed": true, "retryCount": { "$lt": 3 } },
+      "actions": { "retry": true, "reassignAgent": true },
+      "priority": 90
+    }
+  ]
+}

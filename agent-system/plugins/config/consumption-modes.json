@@ -1,0 +1,34 @@
+{
+  "modes": {
+    "MINIMAL": {
+      "description": "Single-threaded, minimal resource usage",
+      "maxConcurrentAgents": 2,
+      "maxParallelTasks": 1,
+      "cacheEnabled": false,
+      "cacheTTL": 0,
+      "workerPoolSize": 1,
+      "costEstimate": { "min": 5, "max": 10, "currency": "USD" },
+      "resources": { "memory": "512MB", "cpu": "0.5 core", "storage": "5GB" }
+    },
+    "STANDARD": {
+      "description": "Balanced performance and cost, 3-5 concurrent tasks",
+      "maxConcurrentAgents": 6,
+      "maxParallelTasks": 5,
+      "cacheEnabled": true,
+      "cacheTTL": 3600,
+      "workerPoolSize": 4,
+      "costEstimate": { "min": 20, "max": 30, "currency": "USD" },
+      "resources": { "memory": "2GB", "cpu": "2 cores", "storage": "50GB" }
+    },
+    "HIGH_PERFORMANCE": {
+      "description": "Maximum performance, full parallelization",
+      "maxConcurrentAgents": 20,
+      "maxParallelTasks": 15,
+      "cacheEnabled": true,
+      "cacheTTL": 7200,
+      "workerPoolSize": 8,
+      "costEstimate": { "min": 100, "max": 200, "currency": "USD" },
+      "resources": { "memory": "8GB", "cpu": "4+ cores", "storage": "200GB" }
+    }
+  }
+}

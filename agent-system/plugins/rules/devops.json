@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "name": "health_check_required",
+      "description": "All services must have health check endpoints",
+      "conditions": { "taskType": "DEPLOYMENT" },
+      "actions": { "enforce": "healthcheck_endpoint", "checkPattern": "docker_healthcheck" },
+      "priority": 90
+    },
+    {
+      "name": "resource_limits_required",
+      "description": "All containers must have resource limits",
+      "conditions": { "taskType": "DEPLOYMENT", "target": "docker" },
+      "actions": { "enforce": "memory_limit", "enforce2": "cpu_limit" },
+      "priority": 80
+    }
+  ]
+}

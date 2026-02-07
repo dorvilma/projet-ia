@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-agent_dev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-agent_dev_password}
+      POSTGRES_DB: agent_system
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-n8n-db.sql:/docker-entrypoint-initdb.d/init-n8n-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-agent_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:latest
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n_db
+      - DB_POSTGRESDB_USER=n8n_user
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-n8n_dev_password}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-change-me-to-a-random-string-32ch}
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_METRICS=true
+      - EXECUTIONS_MODE=regular
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8ndata:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: base
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://${DB_USER:-agent_dev}:${DB_PASSWORD:-agent_dev_password}@postgres:5432/agent_system
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
+      - N8N_BASE_URL=http://n8n:5678
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-me-in-production-please}
+      - CORS_ORIGIN=http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      - ./backend/package.json:/app/package.json
+      - ./plugins:/app/plugins
+      - backend_modules:/app/node_modules
+    working_dir: /app
+    command: >
+      sh -c "npm install && npx prisma generate && npx prisma migrate deploy && npx tsx watch src/server.ts"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: base
+    environment:
+      - VITE_API_URL=http://localhost:3001
+      - VITE_WS_URL=ws://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tailwind.config.ts:/app/tailwind.config.ts
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
+      - ./frontend/components.json:/app/components.json
+      - frontend_modules:/app/node_modules
+    working_dir: /app
+    command: >
+      sh -c "npm install && npx vite --host 0.0.0.0"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitmqdata:
+  n8ndata:
+  backend_modules:
+  frontend_modules:
+
+networks:
+  default:
+    name: agent-network
