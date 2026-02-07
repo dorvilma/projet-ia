@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:16-alpine
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.postgres
     environment:
       POSTGRES_USER: ${DB_USER:-agent_dev}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-agent_dev_password}
@@ -11,7 +13,6 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./scripts/init-n8n-db.sql:/docker-entrypoint-initdb.d/init-n8n-db.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-agent_dev}"]
       interval: 5s
@@ -105,7 +106,7 @@ services:
       - backend_modules:/app/node_modules
     working_dir: /app
     command: >
-      sh -c "npm install && npx prisma generate && npx prisma migrate deploy && npx tsx watch src/server.ts"
+      sh -c "npm install && npx prisma generate && npx prisma db push --accept-data-loss && npx tsx watch src/server.ts"
     restart: unless-stopped
 
   frontend:
@@ -122,7 +123,6 @@ services:
       - backend
     volumes:
       - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
       - ./frontend/index.html:/app/index.html
       - ./frontend/package.json:/app/package.json
       - ./frontend/vite.config.ts:/app/vite.config.ts
