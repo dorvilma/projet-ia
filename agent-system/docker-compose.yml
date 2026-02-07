@@ -94,9 +94,9 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: base
+      context: .
+      dockerfile: backend/Dockerfile
+      target: dev
     environment:
       - NODE_ENV=development
       - PORT=3001
@@ -115,17 +115,9 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    volumes:
-      - ./backend/src:/app/src
-      - ./backend/prisma:/app/prisma
-      - ./backend/package.json:/app/package.json
-      - ./plugins:/app/plugins
-      - backend_modules:/app/node_modules
     working_dir: /app
     command: >
       sh -c "
-        npm install &&
-        npx prisma generate &&
         npx prisma db push --accept-data-loss &&
         npx tsx watch src/server.ts
       "
@@ -135,7 +127,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: base
+      target: dev
     environment:
       - VITE_API_URL=http://localhost:3001
       - VITE_WS_URL=ws://localhost:3001
@@ -143,20 +135,9 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/index.html:/app/index.html
-      - ./frontend/package.json:/app/package.json
-      - ./frontend/vite.config.ts:/app/vite.config.ts
-      - ./frontend/tailwind.config.ts:/app/tailwind.config.ts
-      - ./frontend/postcss.config.js:/app/postcss.config.js
-      - ./frontend/tsconfig.json:/app/tsconfig.json
-      - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
-      - ./frontend/components.json:/app/components.json
-      - frontend_modules:/app/node_modules
     working_dir: /app
     command: >
-      sh -c "npm install && npx vite --host 0.0.0.0"
+      sh -c "npx vite --host 0.0.0.0"
     restart: unless-stopped
 
 volumes:
@@ -164,8 +145,6 @@ volumes:
   redisdata:
   rabbitmqdata:
   n8ndata:
-  backend_modules:
-  frontend_modules:
 
 networks:
   default:

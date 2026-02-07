@@ -3,6 +3,7 @@ dist
 .git
 .env
 .env.*
-*.md
+README.md
+CONTRIBUTING.md
 coverage
 .nyc_output
