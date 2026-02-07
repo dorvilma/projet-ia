@@ -2,13 +2,12 @@ version: '3.8'
 
 services:
   postgres:
-    build:
-      context: ./scripts
-      dockerfile: Dockerfile.postgres
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${DB_USER:-agent_dev}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-agent_dev_password}
       POSTGRES_DB: agent_system
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     ports:
       - "5432:5432"
     volumes:
@@ -51,6 +50,26 @@ services:
       retries: 5
     restart: unless-stopped
 
+  init-n8n-db:
+    image: postgres:16-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${DB_USER:-agent_dev}
+      PGPASSWORD: ${DB_PASSWORD:-agent_dev_password}
+      PGDATABASE: agent_system
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        echo 'Creating n8n user and database...'
+        psql -c "SELECT 1 FROM pg_roles WHERE rolname='n8n_user'" | grep -q 1 || psql -c "CREATE ROLE n8n_user WITH LOGIN PASSWORD 'n8n_dev_password';"
+        psql -tc "SELECT 1 FROM pg_database WHERE datname='n8n_db'" | grep -q 1 || psql -c "CREATE DATABASE n8n_db OWNER n8n_user;"
+        psql -c "GRANT ALL PRIVILEGES ON DATABASE n8n_db TO n8n_user;"
+        echo 'n8n database ready!'
+    restart: "no"
+
   n8n:
     image: n8nio/n8n:latest
     environment:
@@ -70,8 +89,6 @@ services:
       - n8ndata:/home/node/.n8n
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -106,7 +123,12 @@ services:
       - backend_modules:/app/node_modules
     working_dir: /app
     command: >
-      sh -c "npm install && npx prisma generate && npx prisma db push --accept-data-loss && npx tsx watch src/server.ts"
+      sh -c "
+        npm install &&
+        npx prisma generate &&
+        npx prisma db push --accept-data-loss &&
+        npx tsx watch src/server.ts
+      "
     restart: unless-stopped
 
   frontend:

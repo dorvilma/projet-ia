@@ -17,9 +17,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    build:
-      context: ./scripts
-      dockerfile: Dockerfile.postgres
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -36,6 +34,27 @@ services:
         limits:
           memory: 512M
     restart: unless-stopped
+
+  init-n8n-db:
+    image: postgres:16-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${DB_USER}
+      PGPASSWORD: ${DB_PASSWORD}
+      PGDATABASE: agent_system
+      N8N_DB_PASS: ${N8N_DB_PASSWORD}
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        echo 'Creating n8n user and database...'
+        psql -c "SELECT 1 FROM pg_roles WHERE rolname='n8n_user'" | grep -q 1 || psql -c "CREATE ROLE n8n_user WITH LOGIN PASSWORD '$${N8N_DB_PASS}';"
+        psql -tc "SELECT 1 FROM pg_database WHERE datname='n8n_db'" | grep -q 1 || psql -c "CREATE DATABASE n8n_db OWNER n8n_user;"
+        psql -c "GRANT ALL PRIVILEGES ON DATABASE n8n_db TO n8n_user;"
+        echo 'n8n database ready!'
+    restart: "no"
 
   redis:
     image: redis:7-alpine

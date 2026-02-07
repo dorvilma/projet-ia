@@ -6,7 +6,8 @@
       "Bash(npx prisma generate:*)",
       "Bash(npx vite build:*)",
       "Bash(docker compose config:*)",
-      "Bash(docker compose build:*)"
+      "Bash(docker compose build:*)",
+      "Bash(docker-compose:*)"
     ]
   }
 }
